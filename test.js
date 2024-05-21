@@ -1,16 +1,18 @@
 const {remote} = require('webdriverio');
 const request  = require('request');
 const winston = require('winston');
-const XLSX = require('xlsx');
-//const url = 'https://supernewgame.com/';
-const url = 'https://m.baidu.com/';
+const url = 'https://supernewgame.com/';
+//const url = 'https://ip138.com/';
 const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';
-const ipweb = 'http://api.ipweb.cc:8004/api/agent/account2';
-const StateCitys = []; //城市表
+const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';
+const userName = '100121187064-OSE0t25Q';
+const passWord = 'a1c5a11cb488e3d3421c161a121833e5';
+const proxyUrl = 'gate2.ipweb.cc';
 const frequency = 4;   //点击率
 const headers = {
   'Token': token
 };
+var browser = {};
 const now = new Date();
 const date = now.toLocaleString().split(" ")[0];  // 获取日期部分
 
@@ -20,33 +22,10 @@ const capabilities = {
   'appium:deviceName': 'Android',
   'appium:appPackage': 'com.android.browser',
   'appium:appActivity': 'com.android.browser.BrowserActivity',
-  //'browserName':'electron',
-  // 'wdio:chromedriverOptions':{
-  //   binary:'D:/sdk/tools/chromedrivers/91.0.4472' 
-  // }
-  proxy:{
-    proxyType: "manual",
-    httpProxy: "192.168.7.31:8888",
-    socksProxy:'192.168.7.31:8888',
-    socksUsername: "",
-    socksPassword: "",
-    noProxy: "127.0.0.1,localhost"
-  }
+  //'appium:appPackage': 'com.tunnelworkshop.postern',
+  //'appium:appActivity': 'com.tunnelworkshop.postern.PosternMain',
 };
 
-//const chromedriver_path = 'D:/sdk/tools/chromedrivers/chromedriver.91.0.4472.exe';
-//capabilities.chromedriverExecutable = chromedriver_path;
-
-// 读取城市表数据
-const workbook = XLSX.readFile('./StateCity.xlsx');
-const sheetNames = workbook.SheetNames;
-for(let name of sheetNames){
-  const sheet = workbook.Sheets[name];
-  const data = XLSX.utils.sheet_to_json(sheet);
-  for(let row of data){
-    StateCitys.push(row);
-  }
-}
 
 //创建日志
 const logger = winston.createLogger({
@@ -64,24 +43,18 @@ const options = {
   method: 'GET' // 或者使用其他HTTP方法，比如'GET', 'PUT', 'DELETE'
 };
 
-//新建代理IP
-function createIp(){
-  //随机生成城市配置
-  let StateCity = StateCitys[Math.floor(Math.random()*StateCitys.length)];
-  let country = StateCity.countryCode;
-  let times = 5;
-  let limit = 1;
-  logger.info({'tip':'新建代理IP参数','data':{country:country,times:times,limit:limit}});
-  options.url = ipweb+`?&country=${country}&times=${times}&limit=${limit}`;
+//切换代理IP
+function changeIp(){
+  options.url = ipweb+userName;
   return new Promise((resolve, reject) => {
     return request(options, function(error, response, body) {
       if (error) {
-        logger.error({'tip':'新建代理IP出错','error':error});
-        resolve(error);
+        logger.error({'tip':'切换代理IP出错','error':error});
+        resolve(0);
         return;
       }
-      logger.info({'tip':'新建代理IP成功','data':body});
-      resolve(body);
+      logger.info({'tip':'切换代理IP成功','data':body});
+      resolve(1);
     });
   });
 }
@@ -94,11 +67,14 @@ const wdOpts = {
   logLevel: 'info',
   capabilities,
 };
-
 async function runTest() {
-  //const ipData = await createIp();
-  const browser = await remote(wdOpts);
+  browser = await remote(wdOpts);
+  runWeb();
+}
+
+const runWeb = async function(){
   try {
+    await changeIp();
     //获取当前上下文
     const contexts = await browser.getContexts();
     console.log('contexts',contexts);
@@ -106,14 +82,12 @@ async function runTest() {
     //切换上下文到webview
     await browser.switchContext('WEBVIEW_com.android.browser');
     await browser.url(url);
-
     await browser.waitUntil(async function () {
       return (await browser.$('html body'));
     },{timeout:10000,timeoutMsg:'网站打开超时'});
 
     const body = await browser.$('html body');
 
-    /*
     await body.waitUntil(async function () {
       return (await body.$('#seattle-ad-10001'));
     },{timeout:10000,timeoutMsg:'广告加载超时'});
@@ -132,6 +106,7 @@ async function runTest() {
     //切换到 iframe
     await browser.switchToFrame(iframe);
 
+    //等待广告加载完成
     await browser.waitUntil(async function () {
       return (await browser.$('html body'));
     },{timeout:20000,timeoutMsg:'广告iframe加载超时'});
@@ -144,9 +119,8 @@ async function runTest() {
 
     const a = await iframeBody.$$('a')[0];
     await a.waitForStable({ timeout: 10000 }); //等待稳定
-    */
    
-    if(Math.floor(Math.random()*100) < 0){
+    if(Math.floor(Math.random()*100) < frequency){
       //返回父级
       await browser.switchToParentFrame();
 
@@ -154,7 +128,13 @@ async function runTest() {
       await browser.switchContext('NATIVE_APP');
 
       const seattleAd = await browser.$('//android.view.View[@resource-id="seattle-ad-10001"]');
+
+      console.log(await seattleAd.getWindowRect());
+
       seattleAd.click();
+
+      logger.info({'tip':'完成广告点击操作','time':(new Date()).toLocaleString()});
+
 
       //切换上下文到webview
       await browser.switchContext('WEBVIEW_com.android.browser');
@@ -176,12 +156,16 @@ async function runTest() {
         return (await browser.$('html body'));
       },{timeout:20000,timeoutMsg:'广告网站加载超时'});
 
+      logger.info({'tip':'广告详情页面加载完成','time':(new Date()).toLocaleString()});
+
       let wait = Math.floor(Math.random()*6) + 10; //10-15s 
       await browser.pause(wait);
 
       await browser.deleteAllCookies();
       //关闭当前窗口
       await browser.closeWindow()
+
+      logger.info({'tip':'关闭广告详情页','time':(new Date()).toLocaleString()});
 
       //切换回原来的窗口
       await browser.switchToWindow(currentWindowHandle);
@@ -193,10 +177,17 @@ async function runTest() {
     await browser.back(); //返回
     await browser.pause(1000);
     //await browser.refresh(); //刷新页面
-  } finally {
-    await browser.pause(1000);
-    await browser.deleteSession();
+    await browser.deleteSession(capabilities)
+    console.log('status',await browser.status());
+    await browser.newSession(capabilities)
+    runWeb();
+  } catch(err) {
+    logger.error(err);
+    await browser.deleteSession(capabilities);
+    console.log('status',await browser.status());
+    await browser.newSession(capabilities)
+    runWeb();
   }
 }
 
-runTest().catch(console.error);
+runTest();
