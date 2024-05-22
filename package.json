@@ -12,6 +12,7 @@
     "webdriverio": "^8.36.1"
   },
   "dependencies": {
+    "crypto": "^1.0.1",
     "request": "^2.88.2",
     "sync-request": "^6.1.0",
     "winston": "^3.13.0",

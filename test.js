@@ -1,17 +1,20 @@
 const {remote} = require('webdriverio');
 const request  = require('request');
 const winston = require('winston');
-const url = 'https://supernewgame.com/';
-//const url = 'https://ip138.com/';
-const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';
-const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';
-const userName = '100121187064-OSE0t25Q';
-const passWord = 'a1c5a11cb488e3d3421c161a121833e5';
-const proxyUrl = 'gate2.ipweb.cc';
+const crypto = require('crypto');
+//const url = 'https://supernewgame.com/';
+const url = 'https://ip138.com/';
+const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';                     //代理ip token
+const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';  //代理ip 切换ip api
+const userName = '100121187064-OSE0t25Q';                             //代理ip 用户名
+const passWord = 'a1c5a11cb488e3d3421c161a121833e5';                  //代理ip 密码
+const proxyUrl = 'gate2.ipweb.cc';                                    //代理ip 服务器地址
+
+const AK = '206adee0788f6e0e614260592f2cd0a3';    //云机秘钥
+const email = '18937153620@163.com';              //云机注册邮箱
+const domain = 'https://www.ogcloud.com';         //云机官网
+
 const frequency = 4;   //点击率
-const headers = {
-  'Token': token
-};
 var browser = {};
 const now = new Date();
 const date = now.toLocaleString().split(" ")[0];  // 获取日期部分
@@ -20,12 +23,13 @@ const capabilities = {
   platformName: 'Android',
   'appium:automationName': 'UiAutomator2',
   'appium:deviceName': 'Android',
-  'appium:appPackage': 'com.android.browser',
-  'appium:appActivity': 'com.android.browser.BrowserActivity',
+  //'appium:appPackage': 'com.android.browser',
+  //'appium:appActivity': 'com.android.browser.BrowserActivity',
   //'appium:appPackage': 'com.tunnelworkshop.postern',
   //'appium:appActivity': 'com.tunnelworkshop.postern.PosternMain',
+  'appium:appPackage': 'com.android.chrome',
+  'appium:appActivity': 'com.google.android.apps.chrome.Main',
 };
-
 
 //创建日志
 const logger = winston.createLogger({
@@ -35,17 +39,32 @@ const logger = winston.createLogger({
     new winston.transports.File({ filename:date+'.log' })
   ]
 });
-logger.info('开始：'+now.toLocaleString());
 
-const options = {
-  url: ipweb,
-  headers: headers,
-  method: 'GET' // 或者使用其他HTTP方法，比如'GET', 'PUT', 'DELETE'
+const hash = (data) => {
+  // 使用SHA256算法创建哈希对象
+  const hash = crypto.createHash('sha256');
+  // 更新哈希对象与数据
+  hash.update(data);
+  // 获取哈希值的十六进制字符串
+  const signString = hash.digest('hex');
+
+  // 计算 HMAC SHA256 签名  
+  const hmac = crypto.createHmac('sha256', AK);  
+  hmac.update(signString);  
+  const signature = hmac.digest('hex');
+
+  return signature;
 };
 
 //切换代理IP
 function changeIp(){
-  options.url = ipweb+userName;
+  const options = {
+    url: ipweb+userName,
+    headers: {
+      'Token': token
+    },
+    method: 'GET' // 或者使用其他HTTP方法，比如'GET', 'PUT', 'DELETE'
+  };
   return new Promise((resolve, reject) => {
     return request(options, function(error, response, body) {
       if (error) {
@@ -54,6 +73,55 @@ function changeIp(){
         return;
       }
       logger.info({'tip':'切换代理IP成功','data':body});
+      resolve(1);
+    });
+  });
+}
+
+//切换设备型号
+function changeModel(){
+  let date = new Date();
+  const year = date.getFullYear(); // 获取当前年份，例如：2021
+  const month = date.getMonth() + 1; // 获取当前月份，注意需要加1，例如：9
+  const day = date.getDate(); // 获取当前日期，例如：22
+  const headers = {
+    'Account':email,
+    'Lange':'CN',
+    'X-Api-Key':AK,
+    'X-Auth-Date':year.toString()+month.toString()+day.toString(),
+  };
+
+  let keys = Object.keys(headers);
+  let vals = Object.values(headers);
+  let keyStr = keys.join(';').toLowerCase();
+  let valStr = vals.join(',');
+  let signature = hash(keyStr+valStr);
+  headers.signature = signature;
+  headers['Content-Type'] = 'application/json';
+
+  const data = {
+    "action":'reboot',
+    "device_ids":[
+      'VM010010008056'
+    ],
+    "availability_zone":5
+  };
+
+  const options = {
+    url: domain+'/apiv1/cloudphone/actionPhone',
+    headers: headers,
+    method: 'POST',
+    body:JSON.stringify(data)
+  };
+
+  return new Promise((resolve, reject) => {
+    return request(options, function(error, response, body) {
+      if (error) {
+        logger.error({'tip':'切换云机配置出错','error':error});
+        resolve(0);
+        return;
+      }
+      logger.info({'tip':'切换云机配置成功','data':body});
       resolve(1);
     });
   });
@@ -68,26 +136,35 @@ const wdOpts = {
   capabilities,
 };
 async function runTest() {
+  /*
+  logger.info('开始：'+now.toLocaleString());
   browser = await remote(wdOpts);
+  const useAccount = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]');
+  await useAccount.click();
   runWeb();
+  */
+
 }
 
 const runWeb = async function(){
   try {
-    await changeIp();
+    //await changeModel();
+    //await changeIp();
     //获取当前上下文
+    await browser.url(url);
+    await browser.pause(2000);
     const contexts = await browser.getContexts();
     console.log('contexts',contexts);
 
     //切换上下文到webview
-    await browser.switchContext('WEBVIEW_com.android.browser');
-    await browser.url(url);
+    await browser.switchContext('WEBVIEW_chrome');
     await browser.waitUntil(async function () {
       return (await browser.$('html body'));
     },{timeout:10000,timeoutMsg:'网站打开超时'});
 
     const body = await browser.$('html body');
 
+    /*
     await body.waitUntil(async function () {
       return (await body.$('#seattle-ad-10001'));
     },{timeout:10000,timeoutMsg:'广告加载超时'});
@@ -169,25 +246,42 @@ const runWeb = async function(){
 
       //切换回原来的窗口
       await browser.switchToWindow(currentWindowHandle);
+      
     }
-
+    */
+    await await browser.closeWindow();
     await browser.pause(1000);
-    await browser.deleteAllCookies();
+    //await browser.deleteAllCookies();
     //await browser.forward(); //下一页面
-    await browser.back(); //返回
-    await browser.pause(1000);
+    //await browser.back(); //返回
+    await browser.pause(2000);
     //await browser.refresh(); //刷新页面
-    await browser.deleteSession(capabilities)
-    console.log('status',await browser.status());
-    await browser.newSession(capabilities)
+    //切换上下文到浏览器app
+    await browser.switchContext('NATIVE_APP');
+    //await browser.closeApp();
+    //await browser.launchApp();
+    //await browser.deleteSession(capabilities)
+    //console.log('status',await browser.status());
+    //await browser.newSession(capabilities)
     runWeb();
   } catch(err) {
     logger.error(err);
-    await browser.deleteSession(capabilities);
-    console.log('status',await browser.status());
-    await browser.newSession(capabilities)
+    //await browser.deleteSession(capabilities);
+    //console.log('status',await browser.status());
+    //await browser.newSession(capabilities)
+    //await browser.closeApp();
+    //await browser.launchApp();
+    await browser.switchContext('NATIVE_APP');
+    //await browser.closeApp();
+    //await browser.launchApp();
     runWeb();
   }
 }
 
 runTest();
+
+
+process.on('uncaughtException', (error) => {
+  console.error(error); 
+  logger.error(error);
+});
