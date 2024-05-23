@@ -7,8 +7,8 @@ const url = 'https://ip138.com/';
 const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';                     //代理ip token
 const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';  //代理ip 切换ip api
 const userName = '101063165448-MPRNzClR';                             //代理ip 用户名
-const passWord = 'd793a235854b479138e6ba4c054db696';                  //代理ip 密码
-const proxyUrl = 'gate2.ipweb.cc';                                    //代理ip 服务器地址
+const password = 'd793a235854b479138e6ba4c054db696';                  //代理ip 密码
+const proxyUrl = 'gate1.ipweb.cc';                                    //代理ip 服务器地址
 
 const AK = '206adee0788f6e0e614260592f2cd0a3';    //云机秘钥
 const email = '18937153620@163.com';              //云机注册邮箱
@@ -218,6 +218,119 @@ function openRoot(){
     });
   });
 }
+//添加代理
+function addProxy(){
+  const headers = getHeaders();
+  const data = {
+    "action": "add",
+    "availability_zone": 5,
+    "mode": "socks5",
+    "outbound_ip": "1.2.3.5", //随便填
+    "server_ip": proxyUrl,
+    "server_port": "7778",
+    "username": userName,
+    "password": password,
+  };
+
+  const options = {
+    url: domain+'apiv1/cloudphone/actionProxy',
+    headers: headers,
+    method: 'POST',
+    body:JSON.stringify(data)
+  };
+
+  return new Promise((resolve, reject) => {
+    return request(options, function(error, response, body) {
+      let bodyObj = JSON.parse(body);
+      if(bodyObj.code == 200){
+        logger.info({'tip':'添加proxy列表成功','body':body});
+        resolve(1);
+        return;
+      }else if (error) {
+        logger.error({'tip':'添加proxy列表出错','error':error});
+        resolve(0);
+        return;
+      } else {
+        logger.error({'tip':'添加proxy列表出错','body':body});
+        resolve(0);
+        return;
+      }
+    });
+  });
+}
+
+//获取代理列表
+function proxyList(){
+  const headers = getHeaders();
+  const data = {
+    "action": "list",
+    "availability_zone": 5
+  };
+
+  const options = {
+    url: domain+'apiv1/cloudphone/actionProxy',
+    headers: headers,
+    method: 'POST',
+    body:JSON.stringify(data)
+  };
+
+  return new Promise((resolve, reject) => {
+    return request(options, function(error, response, body) {
+      let bodyObj = JSON.parse(body);
+      if(bodyObj.code == 200){
+        logger.info({'tip':'获取proxy列表成功','body':body});
+        resolve(1);
+        return;
+      }else if (error) {
+        logger.error({'tip':'获取proxy列表出错','error':error});
+        resolve(0);
+        return;
+      } else {
+        logger.error({'tip':'获取proxy列表出错','body':body});
+        resolve(0);
+        return;
+      }
+    });
+  });
+}
+
+//绑定代理
+function proxyBind(title){
+  const headers = getHeaders();
+  const data = {
+    "action": "bind",
+    "availability_zone": 5,
+    "title": title,
+    "device_id": "VM010010008056"
+  }
+
+  const options = {
+    url: domain+'apiv1/cloudphone/actionProxy',
+    headers: headers,
+    method: 'POST',
+    body:JSON.stringify(data)
+  };
+
+  return new Promise((resolve, reject) => {
+    return request(options, function(error, response, body) {
+      let bodyObj = JSON.parse(body);
+      if(bodyObj.code == 200){
+        logger.info({'tip':'绑定proxy列表成功','body':body});
+        resolve(1);
+        return;
+      }else if (error) {
+        logger.error({'tip':'绑定proxy列表出错','error':error});
+        resolve(0);
+        return;
+      } else {
+        logger.error({'tip':'绑定proxy列表出错','body':body});
+        resolve(0);
+        return;
+      }
+    });
+  });
+}
+
 
 //webdriver 链接配置
 const wdOpts = {
@@ -227,31 +340,38 @@ const wdOpts = {
   logLevel: 'info',
   capabilities,
 };
+
 async function runTest() {
   /*
   logger.info('开始：'+now.toLocaleString());
-  browser = await remote(wdOpts);
-  const useAccount = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]');
-  await useAccount.click();
-  runWeb();
-  */
+  //获取机型列表
   const obj = await resourceList();
   if(!obj){
     return false;
   }
   phoneList = obj.data;
-  //随机获取机型
-  let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
-  let model = phone.model[Math.floor(Math.random()*phone.model.length)];
-  await changeModel(phone.brand, model);
-  await openRoot();
-  //await changeIp();
+
+  browser = await remote(wdOpts);
+  await browser.waitUntil(async function () {
+    return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
+  },{timeout:20000,timeoutMsg:'浏览器打开超时'});
+
+  const useAccount = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]');
+  await useAccount.click();
+  runWeb();
+  */
+  await changeIp();
 }
 
 const runWeb = async function(){
   try {
-    //await changeModel();
-    //await changeIp();
+    await changeIp();
+    //随机获取机型
+    let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
+    let model = phone.model[Math.floor(Math.random()*phone.model.length)];
+    await changeModel(phone.brand, model);
+    await browser.pause(10000); //等待10秒
+  
     //获取当前上下文
     await browser.url(url);
     await browser.pause(2000);
