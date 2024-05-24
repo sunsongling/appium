@@ -2,8 +2,8 @@ const {remote} = require('webdriverio');
 const request  = require('request');
 const winston = require('winston');
 const crypto = require('crypto');
-//const url = 'https://supernewgame.com/';
-const url = 'https://ip138.com/';
+const url = 'https://supernewgame.com/';
+//const url = 'https://ip138.com/';
 const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';                     //代理ip token
 const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';  //代理ip 切换ip api
 const userName = '101063165448-MPRNzClR';                             //代理ip 用户名
@@ -25,12 +25,12 @@ const capabilities = {
   platformName: 'Android',
   'appium:automationName': 'UiAutomator2',
   'appium:deviceName': 'Android',
-  //'appium:appPackage': 'com.android.browser',
-  //'appium:appActivity': 'com.android.browser.BrowserActivity',
+  'appium:appPackage': 'com.android.browser',
+  'appium:appActivity': 'com.android.browser.BrowserActivity',
   //'appium:appPackage': 'com.tunnelworkshop.postern',
   //'appium:appActivity': 'com.tunnelworkshop.postern.PosternMain',
-  'appium:appPackage': 'com.android.chrome',
-  'appium:appActivity': 'com.google.android.apps.chrome.Main',
+  //'appium:appPackage': 'com.android.chrome',
+  //'appium:appActivity': 'com.google.android.apps.chrome.Main',
 };
 
 //创建日志
@@ -350,49 +350,62 @@ async function runTest() {
     return false;
   }
   phoneList = obj.data;
+   */
 
   browser = await remote(wdOpts);
-  await browser.waitUntil(async function () {
-    return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
-  },{timeout:20000,timeoutMsg:'浏览器打开超时'});
+  
+  //await browser.waitUntil(async function () {
+   // return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
+  //},{timeout:20000,timeoutMsg:'浏览器打开超时'});
 
+  /*
   const useAccount = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]');
   await useAccount.click();
-  runWeb();
   */
-  await changeIp();
+  runWeb();
+ 
 }
 
 const runWeb = async function(){
   try {
+    
     await changeIp();
+    /*
     //随机获取机型
     let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
     let model = phone.model[Math.floor(Math.random()*phone.model.length)];
     await changeModel(phone.brand, model);
     await browser.pause(10000); //等待10秒
-  
+    */
+
+    // const mock = await browser.mock("https://cdn.cloudinfinitedata.com/**");
+    // mock.abort('Failed');
     //获取当前上下文
-    await browser.url(url);
     await browser.pause(2000);
     const contexts = await browser.getContexts();
     console.log('contexts',contexts);
 
     //切换上下文到webview
-    await browser.switchContext('WEBVIEW_chrome');
+    //await browser.switchContext('WEBVIEW_chrome');
+    await browser.switchContext('WEBVIEW_com.android.browser');
+    await browser.url(url);
     await browser.waitUntil(async function () {
       return (await browser.$('html body'));
     },{timeout:10000,timeoutMsg:'网站打开超时'});
 
     const body = await browser.$('html body');
 
-    /*
     await body.waitUntil(async function () {
       return (await body.$('#seattle-ad-10001'));
     },{timeout:10000,timeoutMsg:'广告加载超时'});
 
     const seattle = await body.$('#seattle-ad-10001');
     seattle.scrollIntoView();
+
+    await seattle.waitUntil(async function () {
+      return (seattle.$$('iframe')[0]);
+    },{timeout:10000,timeoutMsg:'广告加载超时'});
+
     const iframe = await seattle.$$('iframe')[0];
 
     // 获取当前窗口句柄
@@ -401,6 +414,12 @@ const runWeb = async function(){
 
     //滚动到可视区域
     await iframe.scrollIntoView();
+
+    //获取位置及大小
+    const seattlePoint = await seattle.getLocation();
+    const seattleSize = await seattle.getSize();
+
+    console.log(seattlePoint,seattleSize);
 
     //切换到 iframe
     await browser.switchToFrame(iframe);
@@ -470,7 +489,6 @@ const runWeb = async function(){
       await browser.switchToWindow(currentWindowHandle);
       
     }
-    */
     await await browser.closeWindow();
     await browser.pause(1000);
     //await browser.deleteAllCookies();
@@ -485,7 +503,7 @@ const runWeb = async function(){
     //await browser.deleteSession(capabilities)
     //console.log('status',await browser.status());
     //await browser.newSession(capabilities)
-    runWeb();
+    //runWeb();
   } catch(err) {
     logger.error(err);
     //await browser.deleteSession(capabilities);
@@ -496,7 +514,8 @@ const runWeb = async function(){
     await browser.switchContext('NATIVE_APP');
     //await browser.closeApp();
     //await browser.launchApp();
-    runWeb();
+    //runWeb();
+    await browser.deleteSession();
   }
 }
 
