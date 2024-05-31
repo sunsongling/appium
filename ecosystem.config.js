@@ -1,5 +1,6 @@
 module.exports = {
   apps : [{
+    name:'广告',
     script: 'server.js',
     //watch: '.',
     "error_file" : "./logs/app-err.log",  // 错误日志路径
