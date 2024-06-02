@@ -37,6 +37,9 @@ const loggerChild = winston.createLogger({
 let appium = null;
 
 function runAppium(){
+    if(appium != null){
+        appium.kill();
+    }
     //子进程
     appium = childProcess.exec('appium server --allow-insecure chromedriver_autodownload  --port '+config.appiumPort);
     appium.stdout.on("data", function (data) {
@@ -70,6 +73,9 @@ function runAppium(){
 //rawTCP
 let rawTCP = null;
 function runRawTCP(){
+    if(rawTCP != null){
+        rawTCP.kill();
+    }
     //子进程
     rawTCP = childProcess.exec('RawTcpTunnelConnector-amd64-windows.exe config=./config.json');
     rawTCP.stdout.on("data", function (data) {
@@ -109,13 +115,7 @@ function runRawTCP(){
 }
 
 function restartRawTCP (){
-    if(rawTCP != null){
-        rawTCP.kill();
-        runRawTCP();
-    }else{
-        runRawTCP();
-    }
-
+    runRawTCP();
     //重连 adb
     connectAdb();
 }
@@ -123,7 +123,15 @@ function restartRawTCP (){
 //链接 adb
 function connectAdb(){
     let command = "adb connect "+config.deviceName;
-    childProcess.exec(command);
+    //childProcess.exec(command);
+    childProcess.exec('start cmd /c ' + command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`执行的错误: ${error}`);
+          return;
+        }
+        console.log(`stdout: ${stdout}`);
+        console.error(`stderr: ${stderr}`);
+      });
 }
 
 //检测 adb 链接转态
@@ -144,7 +152,7 @@ let child = null;
 
 function runChild(){
     //子进程
-    child = childProcess.spawn('node',['./index.js']);
+    child = childProcess.spawn('node',['./scripts/topgame.js']);
 
     child.stdout.on("data", function (data) {
         // 因为可能会有多次输出，所以需要将数据转换为字符串
@@ -174,8 +182,8 @@ function runChild(){
         runChild();
     });
 }
-runAppium();
-wait(2000); //等待2秒
-restartRawTCP();
-wait(2000); //等待2秒
+// runAppium();
+// wait(2000); //等待2秒
+// restartRawTCP();
+// wait(2000); //等待2秒
 runChild();

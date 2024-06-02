@@ -66,7 +66,8 @@ function getHeaders(){
   const year = date.getFullYear(); // 获取当前年份，例如：2021
   let month = date.getMonth() + 1; // 获取当前月份，注意需要加1，例如：9
   month = month < 10 ? '0' + month.toString() : month;
-  const day = date.getDate(); // 获取当前日期，例如：22
+  let day = date.getDate(); // 获取当前日期，例如：22
+  day = day < 10 ? '0' + day.toString() : day;
   const headers = {
     'account':email,
     'lang':'CN',

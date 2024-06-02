@@ -8,6 +8,19 @@ var phoneList = [];
 async function runTest() {
     app.init(config);
     app.logger.info('开始：'+now.toLocaleString());
+
+    //获取机型列表
+    phoneList = await app.resourceList();
+
+    //随机获取机型
+    let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
+    let model = phone.model[Math.floor(Math.random()*phone.model.length)];
+    await app.changeModel(phone.brand, model);
+
+    //切换IP
+    await app.changeIp();
+
+
     const capabilities = {
         platformName: 'Android',
         'appium:automationName': 'UiAutomator2',
@@ -26,8 +39,7 @@ async function runTest() {
     };
     browser = await remote(wdOpts);
 
-    //获取机型列表
-    phoneList = await app.resourceList();
+    await browser.pause(2000);
 
     await browser.waitUntil(async function () {
         return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
@@ -54,17 +66,7 @@ const runWeb = async function(){
   try {
 
     let windowHandlesAll = [];
-    //随机获取机型
-    let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
-    let model = phone.model[Math.floor(Math.random()*phone.model.length)];
-    await app.changeModel(phone.brand, model);
 
-    //切换IP
-    await app.changeIp();
-
-    await browser.pause(1000); //等待1秒
-    
-    await browser.pause(1000); //等待1秒
 
     //获取当前上下文
     const contexts = await browser.getContexts();
@@ -89,7 +91,7 @@ const runWeb = async function(){
 
     await body.waitUntil(async function () {
         return (await body.$$('.container .site-content .adsbygoogle'));
-    },{timeout:10000,timeoutMsg:'广告加载超时'});
+    },{timeout:30000,timeoutMsg:'广告加载超时'});
 
     const seattles = await body.$$('.container .site-content .adsbygoogle');
 
@@ -101,7 +103,7 @@ const runWeb = async function(){
 
     await seattle.waitUntil(async function () {
     return (seattle.$$('iframe'));
-    },{timeout:10000,timeoutMsg:'广告加载超时'});
+    },{timeout:30000,timeoutMsg:'广告加载超时'});
 
     let iframes = await seattle.$$('iframe');
     let iframe 
@@ -114,18 +116,19 @@ const runWeb = async function(){
     }
     
     if(Math.floor(Math.random()*100) <= config.frequency && iframe){
+        await iframe.scrollIntoView();
         //切换到 iframe
         await browser.switchToFrame(iframe);
         //等待广告加载完成
         await browser.waitUntil(async function () {
             return (await browser.$('html body'));
-        },{timeout:20000,timeoutMsg:'广告iframe加载超时'});
+        },{timeout:30000,timeoutMsg:'广告iframe加载超时'});
     
         const iframeBody = await browser.$('html body');
         
         await browser.waitUntil(async function () {
             return (await iframeBody.$('#mys-wrapper #mys-content').$$('a')[0]);
-        },{timeout:20000,timeoutMsg:'获取a 标签超时'});
+        },{timeout:100000,timeoutMsg:'获取a 标签超时'});
       
         const a = await iframeBody.$('#mys-wrapper #mys-content').$$('a')[0];
         await a.waitForStable({ timeout: 10000 }); //等待稳定
@@ -194,7 +197,7 @@ const runWeb = async function(){
 
         await body.waitUntil(async function () {
             return (await body.$$('.container .site-content .adsbygoogle'));
-        },{timeout:10000,timeoutMsg:'广告加载超时'});
+        },{timeout:30000,timeoutMsg:'广告加载超时'});
     
         const seattles = await body.$$('.container .site-content .adsbygoogle');
     
@@ -206,7 +209,7 @@ const runWeb = async function(){
     
         await seattle.waitUntil(async function () {
         return (seattle.$$('iframe'));
-        },{timeout:10000,timeoutMsg:'广告加载超时'});
+        },{timeout:30000,timeoutMsg:'广告加载超时'});
     
         let iframes = await seattle.$$('iframe');
         let iframe 
@@ -219,18 +222,19 @@ const runWeb = async function(){
         }
         
         if(Math.floor(Math.random()*100) <= config.frequency && iframe){
+            await iframe.scrollIntoView();
             //切换到 iframe
             await browser.switchToFrame(iframe);
             //等待广告加载完成
             await browser.waitUntil(async function () {
                 return (await browser.$('html body'));
-            },{timeout:20000,timeoutMsg:'广告iframe加载超时'});
+            },{timeout:30000,timeoutMsg:'广告iframe加载超时'});
         
             const iframeBody = await browser.$('html body');
             
             await browser.waitUntil(async function () {
                 return (await iframeBody.$('#mys-wrapper #mys-content').$$('a')[0]);
-            },{timeout:20000,timeoutMsg:'获取a 标签超时'});
+            },{timeout:30000,timeoutMsg:'获取a 标签超时'});
           
             const a = await iframeBody.$('#mys-wrapper #mys-content').$$('a')[0];
             await a.waitForStable({ timeout: 10000 }); //等待稳定
@@ -276,18 +280,18 @@ const runWeb = async function(){
         }
     }
     
-    await await browser.closeWindow();
+    await browser.closeWindow();
     await browser.pause(1000);
     await browser.switchContext('NATIVE_APP');
-    await browser.browserClose();
+    //await browser.browserClose();
 
-    runWeb();
+    //runWeb();
   } catch(err) {
     app.logger.error(err);
     
     await browser.switchContext('NATIVE_APP');
-    await browser.browserClose();
-    runWeb();
+    //await browser.browserClose();
+    //runWeb();
     //await browser.deleteSession();
   }
 }

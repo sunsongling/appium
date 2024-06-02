@@ -1,0 +1,30 @@
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m Welcome to Appium v2.5.4\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m Non-default server args:\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m { allowInsecure: [ \u001b[32m'chromedriver_autodownload'\u001b[39m ] }\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m The autodetected Appium home path: C:\\Users\\孙松龄\\.appium\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m Attempting to load driver uiautomator2...\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:04 \u001b[35m[Appium]\u001b[39m Requiring driver at C:\\Users\\孙松龄\\.appium\\node_modules\\appium-uiautomator2-driver\\build\\index.js\r"}
+{"level":"info","message":"2024/6/1 22:12:04 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m AndroidUiautomator2Driver has been successfully loaded in 10.465s\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m Appium REST http interface listener started on http://0.0.0.0:4723\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m You can provide the following URLs in your client code to connect to this server:\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m \thttp://192.168.71.126:4723/\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m \thttp://192.168.149.1:4723/\r"}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m \thttp://192.168.25.1:4723/\r"}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m \thttp://127.0.0.1:4723/ (only accessible from the same host)\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m Available drivers:\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m   - uiautomator2@3.3.0 (automationName 'UiAutomator2')\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
+{"level":"info","message":"2024/6/1 22:12:15 \u001b[35m[Appium]\u001b[39m No plugins have been installed. Use the \"appium plugin\" command to install the one(s) you want to use.\r"}
+{"level":"info","message":"2024/6/1 22:12:15 "}
