@@ -154,6 +154,10 @@ const closeWeb = async function (){
 
 const gotoAdver = async function(adver,type){
 
+    // 等待页面加载并获取 iframe 元素
+    const iframe = await adver.$('iframe');
+    await iframe.waitForExist({ timeout: 10000 }); // 等待 iframe 存在
+
     //获取广告框大小
     //const adverSize = await adver.getSize();
     //await adver.click({x:Math.floor(-(adverSize.width - 2) /2  + Math.random()*(adverSize.width - 2)),y:Math.floor(-(adverSize.height - 2) /2 + Math.random()*(adverSize.height - 2))});
@@ -211,8 +215,29 @@ const runWeb = async function(){
 
     await browser.pause(5000);
 
+    let pop;
+    try {
+        //检测弹窗广告
+        pop = await body.$('#ad_position_box #card #creative');
+        app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString(),type:'pop'});
+    }catch (error) {
+        app.logger.info({tip:'弹框广告不存在',time:(new Date()).toLocaleString()});
+    }
+
+    if(pop){
+        if(Math.floor(Math.random()*100) < config.frequency){
+            await pop.scrollIntoView();
+            gotoAdver(pop,'pop');
+            return;
+        }else{
+            //悬浮框广告关闭按钮
+            const popClose = await body.$('#mys-wrapper #mys-content #dismiss-button');
+            await popClose.click();
+        }
+    }
+
     //广告
-    const seattles = await body.$$('#adv1 .adsbygoogle');
+    const seattles = await body.$$('.adsbygoogle div');
     app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString()});
 
     let wait = Math.floor(Math.random()*5) + 5; //5-9s 
@@ -225,7 +250,7 @@ const runWeb = async function(){
         gotoAdver(seattle,'adsbygoogle');
         return ;
     }else if (Math.floor(Math.random()*100) <= config.openChild){
-        const gameItems = await body.$$('.item-game');
+        const gameItems = await body.$$('.item');
         const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
         await gameItem.scrollIntoView();
         await gameItem.click();
@@ -254,7 +279,7 @@ const runChild = async function(){
         const body = await browser.$('html body');
 
         //广告
-        const seattles = await body.$$('#adv1 .adsbygoogle');
+        const seattles = await body.$$('.adsbygoogle div');
         app.logger.info({tip:'c-广告曝光',time:(new Date()).toLocaleString()});
 
         let wait = Math.floor(Math.random()*5) + 5; //5-9s 
