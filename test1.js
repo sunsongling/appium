@@ -9,19 +9,6 @@ async function runTest() {
     app.init(config);
     app.logger.info('开始：'+now.toLocaleString());
 
-    /*
-    //获取机型列表
-    phoneList = await app.resourceList();
-
-    //随机获取机型
-    let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
-    let model = phone.model[Math.floor(Math.random()*phone.model.length)];
-    await app.changeModel(phone.brand, model);
-
-    //切换IP
-    await app.changeIp();
-    */
-
 
     const capabilities = {
         platformName: 'Android',
@@ -83,32 +70,34 @@ const runWeb = async function(){
 
     const body = await browser.$('html body');
 
-    
-    const indexBn = await body.$('#ats-interstitial-root #ats-interstitial-container #ats-interstitial-paper');
-    await indexBn.click({x:10,y:20});
+    const adver = await browser.$('.SDkEP');
+    // 获取元素的大小和位置
+    const location = await adver.getLocation();
+    const size = await adver.getSize();
 
-    // await indexBn.action('pointer',{
-    //     parameters: { pointerType: 'touch' } 
-    // })
-    // .tap({x:10,y:20});
+    // 生成随机点击位置
+    const randomX = Math.floor(Math.random() * size.width) + location.x;
+    const randomY = Math.floor(Math.random() * size.height) + location.y;
 
-    await browser.pause(100000);
-     //切换上下文到浏览器app
-    await browser.switchContext('NATIVE_APP');
+    console.log(`随机点击坐标: (${randomX}, ${randomY})`);
 
-    await await browser.closeWindow();
-    await browser.pause(1000);
-    await browser.switchContext('NATIVE_APP');
-    //await browser.browserClose();
+    // 在随机坐标位置执行点击操作
+    await browser.performActions([{
+        type: 'pointer',
+        id: 'finger1',
+        parameters: { pointerType: 'touch' },
+        actions: [
+            { type: 'pointerMove', duration: 0, x: randomX, y: randomY },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 100 },
+            { type: 'pointerUp', button: 0 }
+        ]
+    }]);
 
-    //runWeb();
   } catch(err) {
     app.logger.error(err);
     
-    await browser.switchContext('NATIVE_APP');
-    //await browser.browserClose();
-    //runWeb();
-    //await browser.deleteSession();
+    await browser.deleteSession();
   }
 }
 
