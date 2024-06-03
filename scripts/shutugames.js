@@ -221,7 +221,7 @@ const runWeb = async function(){
         pop = await body.$('#ad_position_box #card #creative');
         app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString(),type:'pop'});
     }catch (error) {
-        app.logger.info({tip:'弹框广告不存在',time:(new Date()).toLocaleString()});
+        app.logger.info({tip:'弹框没加载',time:(new Date()).toLocaleString()});
     }
 
     if(pop){
@@ -237,27 +237,33 @@ const runWeb = async function(){
     }
 
     //广告
-    const seattles = await body.$$('.adsbygoogle div');
-    app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString()});
+    let seattles;
+    try {
+        seattles = await body.$$('.adsbygoogle div');
+        app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString()});
 
-    let wait = Math.floor(Math.random()*5) + 5; //5-9s 
-    await browser.pause(wait*1000);
+        let wait = Math.floor(Math.random()*5) + 5; //5-9s 
+        await browser.pause(wait*1000);
 
-    
-    if(Math.floor(Math.random()*100) < config.frequency){
-        let seattle = seattles[Math.floor(Math.random()*seattles.length)];
-        await seattle.scrollIntoView();
-        gotoAdver(seattle,'adsbygoogle');
-        return ;
-    }else if (Math.floor(Math.random()*100) <= config.openChild){
-        const gameItems = await body.$$('.item');
-        const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
-        await gameItem.scrollIntoView();
-        await gameItem.click();
-        app.logger.info({tip:'进入子页面',time:(new Date()).toLocaleString()});
-        runChild();
-        return ;
-    }else{
+        
+        if(Math.floor(Math.random()*100) < config.frequency){
+            let seattle = seattles[Math.floor(Math.random()*seattles.length)];
+            await seattle.scrollIntoView();
+            gotoAdver(seattle,'adsbygoogle');
+            return ;
+        }else if (Math.floor(Math.random()*100) <= config.openChild){
+            const gameItems = await body.$$('.item');
+            const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
+            await gameItem.scrollIntoView();
+            await gameItem.click();
+            app.logger.info({tip:'进入子页面',time:(new Date()).toLocaleString()});
+            runChild();
+            return ;
+        }else{
+            closeWeb();
+        }
+    }catch (error) {
+        app.logger.info({tip:'adsbygoogle广告加载失败',time:(new Date()).toLocaleString()});
         closeWeb();
     }
 
@@ -279,20 +285,26 @@ const runChild = async function(){
         const body = await browser.$('html body');
 
         //广告
-        const seattles = await body.$$('.adsbygoogle div');
-        app.logger.info({tip:'c-广告曝光',time:(new Date()).toLocaleString()});
+        let seattles;
+        try {
+            seattles = await body.$$('.adsbygoogle div');
+            app.logger.info({tip:'c-广告曝光',time:(new Date()).toLocaleString()});
 
-        let wait = Math.floor(Math.random()*5) + 5; //5-9s 
-        await browser.pause(wait*1000);
+            let wait = Math.floor(Math.random()*5) + 5; //5-9s 
+            await browser.pause(wait*1000);
 
-        if(Math.floor(Math.random()*100) < config.frequency){
-            let seattle = seattles[Math.floor(Math.random()*seattles.length)];
-            await seattle.scrollIntoView();
-            gotoAdver(seattle,'c-adsbygoogle');
-            return ;
-        }else{
+            if(Math.floor(Math.random()*100) < config.frequency){
+                let seattle = seattles[Math.floor(Math.random()*seattles.length)];
+                await seattle.scrollIntoView();
+                gotoAdver(seattle,'c-adsbygoogle');
+                return ;
+            }else{
+                closeWeb();
+                return ;
+            }
+        }catch (error) {
+            app.logger.info({tip:'c-adsbygoogle广告加载失败',time:(new Date()).toLocaleString()});
             closeWeb();
-            return ;
         }
     }catch(err) {
         app.logger.error(err);
