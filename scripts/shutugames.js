@@ -15,10 +15,10 @@ const capabilities = {
     'appium:automationName': 'UiAutomator2',
     'appium:deviceName': config.deviceName,
     'appium:appPackage': config.appPackage,
-    'appium:appActivity': config.appActivity,
-    'goog:chromeOptions': {
-        args: ['--disable-web-security']
-    }
+    'appium:appActivity': config.appActivity
+    // 'goog:chromeOptions': {
+    //     args: ['--disable-web-security']
+    // }
 };
 //webdriver 链接配置
 const wdOpts = {
@@ -123,14 +123,20 @@ const closeWeb = async function (){
         await browser.switchToWindow(windowHandles[windowHandles.length - 1]);
         await browser.url(config.url);
 
-        //runWeb();
+        runWeb();
     } catch(err) {
 
         app.logger.error(err);
-        //删除会话
+        const capabilities = {
+            platformName: 'Android',
+            'appium:automationName': 'UiAutomator2',
+            'appium:deviceName': config.deviceName,
+            'appium:appPackage': config.appPackage,
+            'appium:appActivity': config.appActivity,
+        };
+
         browser.deleteSession();
 
-        //重启浏览器
         browser.reloadSession(capabilities);
 
         await browser.pause(2000);
@@ -147,6 +153,14 @@ const closeWeb = async function (){
     
         const ackButton = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/ack_button"]');
         await ackButton.click();
+
+        await browser.pause(1000);
+
+
+        //切换上下文到webview
+        await browser.switchContext('WEBVIEW_chrome');
+
+        await browser.url(config.url);
         runWeb();
     } 
 }
@@ -157,6 +171,8 @@ const gotoAdver = async function(adver,type){
     // 等待页面加载并获取 iframe 元素
     const iframe = await adver.$('iframe');
     await iframe.waitForExist({ timeout: 10000 }); // 等待 iframe 存在
+
+    await adver.scrollIntoView();
 
     //获取广告框大小
     //const adverSize = await adver.getSize();
@@ -211,61 +227,104 @@ const runWeb = async function(){
 
     const body = await browser.$('html body');
 
-    app.logger.info({tip:'网站已打开',time:(new Date()).toLocaleString()});
+    // 获取屏幕尺寸
+    const { width, height } = await browser.getWindowSize();
+        
+    // 设置滑动的起点和终点
+    const startX = width / 2;
+    const startY = height * 0.8;
+    const endX = width / 2;
+    const endY = height * 0.2;
 
+    // 模拟滑动到页面底部
+    await browser.performActions([{
+        type: 'pointer',
+        id: 'finger1',
+        parameters: { pointerType: 'touch' },
+        actions: [
+            { type: 'pointerMove', duration: 0, x: startX, y: startY },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 100 },
+            { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
+            { type: 'pointerUp', button: 0 }
+        ]
+    }]);
+
+    // 等待几秒以观察滑动效果
     await browser.pause(5000);
 
+    app.logger.info({tip:'网站已打开',time:(new Date()).toLocaleString()});
     let pop;
+    let popV;
     try {
         //检测弹窗广告
-        pop = await body.$('#ad_position_box #card #creative');
-        app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString(),type:'pop'});
+        pop = await body.$('#google_esf');
+        popV = await pop.isDisplayed();
+        if(popV){
+            app.logger.info({tip:'pop 广告曝光',time:(new Date()).toLocaleString(),type:'pop'});
+        }
     }catch (error) {
         app.logger.info({tip:'弹框没加载',time:(new Date()).toLocaleString()});
     }
 
-    if(pop){
+    if(pop && popV){
         if(Math.floor(Math.random()*100) < config.frequency){
             await pop.scrollIntoView();
             gotoAdver(pop,'pop');
             return;
         }else{
+            await browser.switchToFrame(pop);
             //悬浮框广告关闭按钮
-            const popClose = await body.$('#mys-wrapper #mys-content #dismiss-button');
+            const popClose = await browser.$('#mys-wrapper #mys-content #dismiss-button');
             await popClose.click();
+            //返回父级
+            await browser.switchToParentFrame();
         }
     }
 
     //广告
     let seattles;
+    let seattlesShow = [];
     try {
-        seattles = await body.$$('.adsbygoogle div');
+        seattles = await body.$$('.adsbygoogle');
         app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString()});
 
-        let wait = Math.floor(Math.random()*5) + 5; //5-9s 
-        await browser.pause(wait*1000);
-
-        
-        if(Math.floor(Math.random()*100) < config.frequency){
-            let seattle = seattles[Math.floor(Math.random()*seattles.length)];
-            await seattle.scrollIntoView();
-            gotoAdver(seattle,'adsbygoogle');
-            return ;
-        }else if (Math.floor(Math.random()*100) <= config.openChild){
-            const gameItems = await body.$$('.item');
-            const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
-            await gameItem.scrollIntoView();
-            await gameItem.click();
-            app.logger.info({tip:'进入子页面',time:(new Date()).toLocaleString()});
-            runChild();
-            return ;
-        }else{
-            closeWeb();
+        for(let i of seattles){
+            let v = await i.isDisplayed();
+            if(v){
+                seattlesShow.push(i);
+                break;
+            }
         }
+
+        app.logger.info({tip:'广告曝光 数量'+seattlesShow.length});
     }catch (error) {
         app.logger.info({tip:'adsbygoogle广告加载失败',time:(new Date()).toLocaleString()});
         closeWeb();
     }
+
+    let wait = Math.floor(Math.random()*5) + 5; //5-9s 
+    await browser.pause(wait*1000);
+
+        
+    if(Math.floor(Math.random()*100) < config.frequency && seattlesShow.length > 0){
+        let seattle = seattlesShow[Math.floor(Math.random()*seattlesShow.length)];
+        await seattle.scrollIntoView();
+        let div = await seattle.$('div');
+        gotoAdver(div,'adsbygoogle');
+        return ;
+    }else if (Math.floor(Math.random()*100) <= config.openChild){
+        const gameItems = await body.$$('.item');
+        const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
+        await gameItem.scrollIntoView();
+        await gameItem.click();
+        app.logger.info({tip:'进入子页面',time:(new Date()).toLocaleString()});
+        runChild();
+        return ;
+    }else{
+        closeWeb();
+    }
+    
 
   } catch(err) {
     app.logger.error(err);
@@ -284,28 +343,92 @@ const runChild = async function(){
 
         const body = await browser.$('html body');
 
+        // 获取屏幕尺寸
+        const { width, height } = await browser.getWindowSize();
+            
+        // 设置滑动的起点和终点
+        const startX = width / 2;
+        const startY = height * 0.8;
+        const endX = width / 2;
+        const endY = height * 0.2;
+
+        // 模拟滑动到页面底部
+        await browser.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 100 },
+                { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+
+
+        let pop;
+        let popV;
+        try {
+            //检测弹窗广告
+            pop = await body.$('#google_esf');
+            let popV = await pop.isDisplayed();
+            if(popV){
+                app.logger.info({tip:'c-pop 广告曝光',time:(new Date()).toLocaleString(),type:'c-pop'});
+            }
+        }catch (error) {
+            app.logger.info({tip:'弹框没加载',time:(new Date()).toLocaleString()});
+        }
+
+        if(pop && popV){
+            if(Math.floor(Math.random()*100) < config.frequency){
+                await pop.scrollIntoView();
+                gotoAdver(pop,'c-pop');
+                return;
+            }else{
+                await browser.switchToFrame(pop);
+                //悬浮框广告关闭按钮
+                const popClose = await browser.$('#mys-wrapper #mys-content #dismiss-button');
+                await popClose.click();
+                //返回父级
+                await browser.switchToParentFrame();
+            }
+        }
+
         //广告
         let seattles;
+        let seattlesShow = [];
         try {
-            seattles = await body.$$('.adsbygoogle div');
+            seattles = await body.$$('.adsbygoogle');
             app.logger.info({tip:'c-广告曝光',time:(new Date()).toLocaleString()});
 
-            let wait = Math.floor(Math.random()*5) + 5; //5-9s 
-            await browser.pause(wait*1000);
-
-            if(Math.floor(Math.random()*100) < config.frequency){
-                let seattle = seattles[Math.floor(Math.random()*seattles.length)];
-                await seattle.scrollIntoView();
-                gotoAdver(seattle,'c-adsbygoogle');
-                return ;
-            }else{
-                closeWeb();
-                return ;
+            for(let i of seattles){
+                let v = await i.isDisplayed();
+                if(v){
+                    seattlesShow.push(i);
+                    break;
+                }
             }
+            app.logger.info({tip:'c-广告曝光 数量'+seattlesShow.length});
         }catch (error) {
             app.logger.info({tip:'c-adsbygoogle广告加载失败',time:(new Date()).toLocaleString()});
             closeWeb();
         }
+
+        let wait = Math.floor(Math.random()*5) + 5; //5-9s 
+        await browser.pause(wait*1000);
+
+        if(Math.floor(Math.random()*100) < config.frequency && seattlesShow.length > 0){
+            let seattle = seattlesShow[Math.floor(Math.random()*seattlesShow.length)];
+            await seattle.scrollIntoView();
+            let div = await seattle.$('div');
+            gotoAdver(div,'c-adsbygoogle');
+            return ;
+        }else{
+            closeWeb();
+            return ;
+        }
+        
     }catch(err) {
         app.logger.error(err);
         closeWeb();
