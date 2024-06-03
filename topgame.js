@@ -212,7 +212,7 @@ const runWeb = async function(){
     await browser.pause(5000);
 
     //广告
-    const seattles = await body.$$('.adsbygoogle div');
+    const seattles = await body.$$('#adv1 .adsbygoogle');
     app.logger.info({tip:'广告曝光',time:(new Date()).toLocaleString()});
 
     let wait = Math.floor(Math.random()*5) + 5; //5-9s 
@@ -225,7 +225,7 @@ const runWeb = async function(){
         gotoAdver(seattle,'adsbygoogle');
         return ;
     }else if (Math.floor(Math.random()*100) <= config.openChild){
-        const gameItems = await body.$$('.item');
+        const gameItems = await body.$$('.item-game');
         const gameItem = gameItems[Math.floor(Math.random()*gameItems.length)];
         await gameItem.scrollIntoView();
         await gameItem.click();
@@ -254,7 +254,7 @@ const runChild = async function(){
         const body = await browser.$('html body');
 
         //广告
-        const seattles = await body.$$('.adsbygoogle div');
+        const seattles = await body.$$('#adv1 .adsbygoogle');
         app.logger.info({tip:'c-广告曝光',time:(new Date()).toLocaleString()});
 
         let wait = Math.floor(Math.random()*5) + 5; //5-9s 
