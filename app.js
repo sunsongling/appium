@@ -1,6 +1,7 @@
 const request  = require('request');
 const winston = require('winston');
 const crypto = require('crypto');
+const NodeCache = require("node-cache");
 
 const token = 'ASRN570R0UMNE5ZJUZ2696X2E39GI86K';                     //代理ip token
 const ipweb = 'http://api.ipweb.cc:8004/api/agent/release?account=';  //代理ip 切换ip api
@@ -8,6 +9,7 @@ const AK = '206adee0788f6e0e614260592f2cd0a3';    //云机秘钥
 const email = '18937153620@163.com';              //云机注册邮箱
 const domain = 'https://www.ogcloud.com/api/';         //云机官网
 
+const cache = new NodeCache();
 const now = new Date();
 const date = now.toLocaleString().split(" ")[0];  // 获取日期部分
 
@@ -125,6 +127,7 @@ function resourceList(){
 
 //切换设备型号
 function changeModel(brand,model,simInfo='美国'){
+  
   const headers = getHeaders();
   const data = {
     "action": "change_model",
@@ -143,10 +146,18 @@ function changeModel(brand,model,simInfo='美国'){
   };
 
   return new Promise((resolve, reject) => {
+    let modifyModel = cache.get('modifyModel');
+    if(modifyModel != null){
+      resolve(0);
+      return ;
+    }
     return request(options, function(error, response, body) {
       let bodyObj = JSON.parse(body);
       if(bodyObj.code == 200){
         logger.info({'tip':'重置机型成功','brand':brand,'model':model,'body':body});
+        let timestamp = Date.now();
+        //设置更换机型请时间
+        cache.set('modifyModel',timestamp,30);
         resolve(1);
         return;
       }else if (error) {
@@ -311,6 +322,23 @@ function proxyBind(title){
       }
     });
   });
+}
+
+
+
+// 设置缓存
+function setCache(key, value, ttl) {
+    cache.set(key, value, ttl);
+}
+
+// 获取缓存
+function getCache(key) {
+    return cache.get(key);
+}
+
+// 清除缓存
+function clearCache() {
+    cache.flushAll();
 }
 
 function init(_config) {
