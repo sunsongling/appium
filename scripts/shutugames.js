@@ -110,6 +110,7 @@ const closeWeb = async function (){
             // 清空 localStorage
             await browser.execute(() => {
                 localStorage.clear();
+                sessionStorage.clear();
             });
             app.logger.info({'tip':`窗口 ${handle} LocalStorage 已成功清除`});
 
