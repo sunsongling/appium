@@ -37,38 +37,44 @@ async function runTest() {
     //获取机型列表
     //phoneList = await app.resourceList();
 
-    
+    /*
     //随机获取机型
     let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
     let model = phone.model[Math.floor(Math.random()*phone.model.length)];
     await app.changeModel(phone.brand, model);
+    */
     
     //切换IP
     await app.changeIp();
     
-
     browser = await remote(wdOpts);
 
     await browser.pause(2000);
 
-    await browser.waitUntil(async function () {
-        return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
-    },{timeout:20000,timeoutMsg:'浏览器打开超时'});
+    // await browser.waitUntil(async function () {
+    //     return (await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]'));
+    // },{timeout:20000,timeoutMsg:'浏览器打开超时'});
     
 
-    await browser.pause(1000);
+    // await browser.pause(1000);
 
     const useAccount = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/signin_fre_dismiss_button"]');
+    await useAccount.waitForExist({ timeout: 5000 }); // 等待元素存在
+    await useAccount.waitForDisplayed({ timeout: 5000 }); // 等待元素显示
     await useAccount.click();
     
     await browser.pause(1000);
 
     const moreButton = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/more_button"]');
+    await moreButton.waitForExist({ timeout: 5000 });
+    await moreButton.waitForDisplayed({ timeout: 5000 });
     await moreButton.click();
     
     await browser.pause(1000);
 
     const ackButton = await browser.$('//android.widget.Button[@resource-id="com.android.chrome:id/ack_button"]');
+    await ackButton.waitForExist({ timeout: 5000 });
+    await ackButton.waitForDisplayed({ timeout: 5000 });
     await ackButton.click();
 
     
@@ -86,6 +92,9 @@ async function runTest() {
 const closeWeb = async function (){
 
     try {
+
+        await browser.back(); //返回一下
+        await browser.pause(1000);
         // 获取所有窗口句柄
         const windowHandles = await browser.getWindowHandles();
         console.log('所有窗口句柄:', windowHandles);
@@ -110,14 +119,16 @@ const closeWeb = async function (){
                 app.logger.info({'tip':`窗口 ${handle} 已关闭`});
             }
         }
-
+        /*
         //随机获取机型
         let phone = phoneList[Math.floor(Math.random()*phoneList.length)];
         let model = phone.model[Math.floor(Math.random()*phone.model.length)];
         await app.changeModel(phone.brand, model);
+        */
 
         //切换IP
         await app.changeIp();
+        
 
         // 切换到最后一个窗口并打开新页面
         await browser.switchToWindow(windowHandles[windowHandles.length - 1]);
@@ -135,9 +146,10 @@ const closeWeb = async function (){
             'appium:appActivity': config.appActivity,
         };
 
-        browser.deleteSession();
+        //await browser.deleteSession();
 
-        browser.reloadSession(capabilities);
+        //重启会话
+        await browser.reloadSession();
 
         await browser.pause(2000);
     
@@ -170,22 +182,65 @@ const gotoAdver = async function(adver,type){
 
     // 等待页面加载并获取 iframe 元素
     const iframe = await adver.$('iframe');
-    await iframe.waitForExist({ timeout: 10000 }); // 等待 iframe 存在
+    await iframe.waitForExist({ timeout: 5000 }); // 等待元素存在
+    await iframe.waitForDisplayed({ timeout: 5000 }); // 等待元素显示
 
-    await adver.scrollIntoView();
+    // 获取屏幕尺寸
+    const { width, height } = await browser.getWindowSize();
+
+    console.log(`窗口大小:`,width,height);
+        
+    // 设置滑动的起点和终点
+    const startX = Math.floor(width / 2);
+    const startY = Math.floor(height * 0.2);
+    const endX = Math.floor(width / 2);
+    const endY = Math.floor(height * 0.5);
+    // 广告滑动到中间
+    await browser.performActions([{
+        type: 'pointer',
+        id: 'finger1',
+        parameters: { pointerType: 'touch' },
+        actions: [
+            { type: 'pointerMove', duration: 0, x: startX, y: startY },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 100 },
+            { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
+            { type: 'pointerUp', button: 0 }
+        ]
+    }]);
+
+
+
+    //await adver.scrollIntoView();
 
     //获取广告框大小
     //const adverSize = await adver.getSize();
     //await adver.click({x:Math.floor(-(adverSize.width - 2) /2  + Math.random()*(adverSize.width - 2)),y:Math.floor(-(adverSize.height - 2) /2 + Math.random()*(adverSize.height - 2))});
 
+    //获取页面总高
+    // const pageSize = await browser.execute(() => {  
+    //     return {  
+    //         width: document.documentElement.clientWidth,  
+    //         height: document.documentElement.clientHeight  
+    //     };  
+    // });  
+
+    const scrollPosition = await browser.execute(() => {  
+        // 优先使用 window.scrollY，如果不支持则回退到 document.documentElement.scrollTop  
+        return (window.scrollY || document.documentElement.scrollTop) || document.body.scrollTop;  
+    });  
+
+    console.log(`页面大小:`,scrollPosition);
+
     // 获取元素的大小和位置
-    const location = await adver.getLocation();
-    const size = await adver.getSize();
+    const location = await iframe.getLocation();
+    const size = await iframe.getSize();
 
     // 生成随机点击位置
     const randomX = Math.floor(Math.random() * size.width) + location.x;
-    const randomY = Math.floor(Math.random() * size.height) + location.y;
+    const randomY = Math.floor(Math.random() * size.height) + location.y - scrollPosition;
 
+    console.log(`坐标:`,location,size);
     console.log(`随机点击坐标: (${randomX}, ${randomY})`);
 
     // 在随机坐标位置执行点击操作
@@ -230,12 +285,11 @@ const runWeb = async function(){
     // 获取屏幕尺寸
     const { width, height } = await browser.getWindowSize();
         
-    // 设置滑动的起点和终点
-    const startX = width / 2;
-    const startY = height * 0.8;
-    const endX = width / 2;
-    const endY = height * 0.2;
-
+    // 设置滑动的起点和终点 滑动坐标必须是整数
+    const startX = Math.floor( width / 2 );
+    const startY = Math.floor(height * 0.8);
+    const endX = Math.floor(width / 2);
+    const endY = Math.floor(height * 0.2);
     // 模拟滑动到页面底部
     await browser.performActions([{
         type: 'pointer',
@@ -246,12 +300,14 @@ const runWeb = async function(){
             { type: 'pointerDown', button: 0 },
             { type: 'pause', duration: 100 },
             { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
+            { type: 'pointerUp', button: 0 },
+            { type: 'pointerMove', duration: 0, x: startX, y: startY },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 100 },
+            { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
             { type: 'pointerUp', button: 0 }
         ]
     }]);
-
-    // 等待几秒以观察滑动效果
-    await browser.pause(5000);
 
     app.logger.info({tip:'网站已打开',time:(new Date()).toLocaleString()});
     let pop;
@@ -310,8 +366,7 @@ const runWeb = async function(){
     if(Math.floor(Math.random()*100) < config.frequency && seattlesShow.length > 0){
         let seattle = seattlesShow[Math.floor(Math.random()*seattlesShow.length)];
         await seattle.scrollIntoView();
-        let div = await seattle.$('div');
-        gotoAdver(div,'adsbygoogle');
+        gotoAdver(seattle,'adsbygoogle');
         return ;
     }else if (Math.floor(Math.random()*100) <= config.openChild){
         const gameItems = await body.$$('.item');
@@ -347,10 +402,10 @@ const runChild = async function(){
         const { width, height } = await browser.getWindowSize();
             
         // 设置滑动的起点和终点
-        const startX = width / 2;
-        const startY = height * 0.8;
-        const endX = width / 2;
-        const endY = height * 0.2;
+        const startX = Math.floor(width / 2);
+        const startY = Math.floor(height * 0.8);
+        const endX = Math.floor(width / 2);
+        const endY = Math.floor(height * 0.2);
 
         // 模拟滑动到页面底部
         await browser.performActions([{
@@ -358,6 +413,11 @@ const runChild = async function(){
             id: 'finger1',
             parameters: { pointerType: 'touch' },
             actions: [
+                { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 100 },
+                { type: 'pointerMove', duration: 1000, origin: 'viewport', x: endX, y: endY },
+                { type: 'pointerUp', button: 0 },
                 { type: 'pointerMove', duration: 0, x: startX, y: startY },
                 { type: 'pointerDown', button: 0 },
                 { type: 'pause', duration: 100 },
@@ -421,8 +481,7 @@ const runChild = async function(){
         if(Math.floor(Math.random()*100) < config.frequency && seattlesShow.length > 0){
             let seattle = seattlesShow[Math.floor(Math.random()*seattlesShow.length)];
             await seattle.scrollIntoView();
-            let div = await seattle.$('div');
-            gotoAdver(div,'c-adsbygoogle');
+            gotoAdver(seattle,'c-adsbygoogle');
             return ;
         }else{
             closeWeb();
